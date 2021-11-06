@@ -26,7 +26,7 @@ app.get("/", function (req, res) {
 
 app.post("/", function (req, res) {
 	execFile("./deploy.sh", function (error, stdout, stderr) {
-		if (err) throw err;
+		if (error) throw error;
 		console.log("Deployment initiated");
 		res.status(200).send();
 	});
