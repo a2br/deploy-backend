@@ -30,6 +30,7 @@ app.post("/", function (req, res) {
 		console.log("Deployment initiated");
 		console.log("====================");
 		console.log(stdout);
+		console.log("====================");
 		res.status(200).send();
 	});
 });
