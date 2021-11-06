@@ -28,6 +28,8 @@ app.post("/", function (req, res) {
 	execFile("./deploy.sh", function (error, stdout, stderr) {
 		if (error) throw error;
 		console.log("Deployment initiated");
+		console.log("====================");
+		console.log(stdout);
 		res.status(200).send();
 	});
 });
