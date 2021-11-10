@@ -8,16 +8,23 @@ const app = express();
 
 app.use(morgan("dev"));
 
-app.use(express.raw());
+app.use(
+	express.json({
+		verify: (req, res, buf, encoding) => {
+			if (buf && buf.length) {
+				req.rawBody = buf.toString(encoding || "utf8");
+			}
+		},
+	})
+);
 
 app.use(function authorize(req, res, next) {
-	if (req.method !== "POST") {
-		return next();
-	}
+	if (req.method !== "POST") return next();
+
 	const sig = Buffer.from(req.header("X-Hub-Signature-256") || "", "utf-8");
 	const hmac = crypto.createHmac("sha256", process.env.GITHUB_SECRET);
 	const digest = Buffer.from(
-		"sha256" + "=" + hmac.update(req.body).digest("hex"),
+		"sha256" + "=" + hmac.update(req.rawBody).digest("hex"),
 		"utf8"
 	);
 
@@ -25,8 +32,6 @@ app.use(function authorize(req, res, next) {
 		res.status(401).send("Unauthorized");
 	} else next();
 });
-
-app.use(express.json());
 
 app.post("/", function (req, res) {
 	execFile("./deploy.sh", function (error, stdout, stderr) {
