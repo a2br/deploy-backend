@@ -1,28 +1,32 @@
 require("dotenv").config();
+const crypto = require("crypto");
 const express = require("express");
+const bodyParser = require("body-parser");
 const morgan = require("morgan");
 const execFile = require("child_process").execFile;
 const app = express();
 
-GITHUB_SHA1 = "sha1=" + process.env.GITHUB_SHA1;
-GITHUB_SHA256 = "sha256=" + process.env.GITHUB_SHA256;
-
-app.use(express.json());
 app.use(morgan("dev"));
 
-app.use((req, res, next) => {
-	const sha1 = req.headers["x-hub-signature"];
-	const sha256 = req.headers["x-hub-signature-256"];
-	if (sha1 === GITHUB_SHA1 && sha256 === GITHUB_SHA256) {
-		next();
-	} else {
-		res.status(403).send("Forbidden");
+app.use(express.raw());
+
+app.use(function authorize(req, res, next) {
+	if (req.method !== "POST") {
+		return next();
 	}
+	const sig = Buffer.from(req.header("X-Hub-Signature-256") || "", "utf-8");
+	const hmac = crypto.createHmac("sha256", process.env.GITHUB_SECRET);
+	const digest = Buffer.from(
+		"sha256" + "=" + hmac.update(req.body).digest("hex"),
+		"utf8"
+	);
+
+	if (sig.length !== digest.length || !crypto.timingSafeEqual(digest, sig)) {
+		res.status(401).send("Unauthorized");
+	} else next();
 });
 
-app.get("/", function (req, res) {
-	res.send("Server up.");
-});
+app.use(express.json());
 
 app.post("/", function (req, res) {
 	execFile("./deploy.sh", function (error, stdout, stderr) {
@@ -33,6 +37,10 @@ app.post("/", function (req, res) {
 		console.log("====================");
 		res.status(200).send();
 	});
+});
+
+app.get("/", function (req, res) {
+	res.send("Server up.");
 });
 
 var server = app.listen(3420, function () {
