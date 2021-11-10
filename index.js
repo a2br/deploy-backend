@@ -34,13 +34,13 @@ app.use(function authorize(req, res, next) {
 });
 
 app.post("/", function (req, res) {
+	res.status(200).send();
 	execFile("./deploy.sh", function (error, stdout, stderr) {
 		if (error) throw error;
 		console.log("Deployment initiated");
 		console.log("====================");
 		console.log(stdout);
 		console.log("====================");
-		res.status(200).send();
 	});
 });
 
